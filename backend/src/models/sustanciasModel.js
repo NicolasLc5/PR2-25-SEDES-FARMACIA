@@ -1,7 +1,7 @@
 const db = require("../config/db");
 
 const getSustancias = async () => {
-  const [rows] = await db.execute("SELECT * FROM sustancias_controladas");
+  const [rows] = await db.execute("SELECT * FROM controlledsubstances");
   return rows;
 };
 

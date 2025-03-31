@@ -1,7 +1,7 @@
 const db = require("../config/db");
 
 const getCodigos = async () => {
-  const [rows] = await db.execute("SELECT * FROM codigo");
+  const [rows] = await db.execute("SELECT * FROM code");
   return rows;
 };
 

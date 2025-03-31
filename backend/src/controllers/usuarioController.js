@@ -1,14 +1,34 @@
 const Usuario = require("../models/usuarioModel");
+const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 // Iniciar sesión
 const login = async (req, res) => {
   const { gmail, password } = req.body;
   try {
-    const usuario = await Usuario.login(gmail, password);
-    if (!usuario) {
+    const user = await Usuario.login(gmail, password);
+    if (!user) {
       return res.status(401).json({ message: "Credenciales incorrectas" });
     }
-    res.json({ message: "Inicio de sesión exitoso", usuario });
+
+    // Generar token JWT
+    const token = jwt.sign({ id: user.id, rol: user.rol }, process.env.JWT_SECRET, {
+      expiresIn: "8h",
+    });
+
+    res.json({ message: "Inicio de sesión exitoso", user: { id: user.id, username: user.username, gmail: user.gmail, rol: user.rol }, token });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Obtener todos los usuarios
+const getUsers = async (req, res) => {
+  try {
+    const users = await Usuario.getAll();
+    res.json(users);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -46,4 +66,4 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { login, createUser, updateUser, deleteUser };
+module.exports = { login, getUsers, createUser, updateUser, deleteUser };

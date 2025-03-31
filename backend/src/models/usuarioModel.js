@@ -4,45 +4,52 @@ const bcrypt = require("bcryptjs");
 const Usuario = {
   // Iniciar sesión
   login: async (gmail, password) => {
-    const query = "SELECT * FROM usuario WHERE gmail = ?";
+    
+    const query = "SELECT * FROM user WHERE gmail = ? AND status = 1";
     const [rows] = await pool.query(query, [gmail]);
-
-    if (rows.length === 0) return null; // Usuario no encontrado
-
-    const usuario = rows[0];
-
-    // Comparar la contraseña ingresada con la encriptada en la BD
-    const passwordMatch = await bcrypt.compare(password, usuario.password);
-    if (!passwordMatch) return null; // Contraseña incorrecta
-
-    return usuario;
+    
+    
+    if (rows.length === 0) {
+      return null;
+    }
+  
+    const user = rows[0];
+    
+    // Comparar contraseña
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    
+    if (!passwordMatch) {
+      return null;
+    }
+  
+    return user;
+  },
+  // Obtener todos los usuarios activos
+  getAll: async () => {
+    const query = "SELECT id, username, gmail, rol FROM user WHERE status = 1";
+    const [rows] = await pool.query(query);
+    return rows;
   },
 
-  // Crear usuario (con contraseña encriptada)
-  create: async ({ user, password, gmail, rol }) => {
-    const salt = await bcrypt.genSalt(10); // Genera un "sal" para la encriptación
-    const hashedPassword = await bcrypt.hash(password, salt); // Encripta la contraseña
-
-    const query =
-      "INSERT INTO usuario (user, password, gmail, rol) VALUES (?, ?, ?, ?)";
-    const [result] = await pool.query(query, [user, hashedPassword, gmail, rol]);
+  // Crear usuario con contraseña encriptada
+  create: async ({ username, password, gmail, rol }) => {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const query = "INSERT INTO user (username, password, gmail, rol) VALUES (?, ?, ?, ?)";
+    const [result] = await pool.query(query, [username, hashedPassword, gmail, rol]);
     return result.insertId;
   },
 
-  // Modificar usuario (si cambia la contraseña, la encripta de nuevo)
-  update: async (id, { user, password, gmail, rol }) => {
+  // Modificar usuario (opcionalmente cambiar contraseña)
+  update: async (id, { username, password, gmail, rol }) => {
     let query, values;
-    
+
     if (password) {
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-      query =
-        "UPDATE usuario SET user = ?, password = ?, gmail = ?, rol = ? WHERE id = ?";
-      values = [user, hashedPassword, gmail, rol, id];
+      const hashedPassword = await bcrypt.hash(password, 10);
+      query = "UPDATE user SET username = ?, password = ?, gmail = ?, rol = ? WHERE id = ?";
+      values = [username, hashedPassword, gmail, rol, id];
     } else {
-      query =
-        "UPDATE usuario SET user = ?, gmail = ?, rol = ? WHERE id = ?";
-      values = [user, gmail, rol, id];
+      query = "UPDATE user SET username = ?, gmail = ?, rol = ? WHERE id = ?";
+      values = [username, gmail, rol, id];
     }
 
     await pool.query(query, values);
@@ -51,7 +58,7 @@ const Usuario = {
 
   // Eliminar usuario (borrado lógico)
   delete: async (id) => {
-    const query = "UPDATE usuario SET status = 0 WHERE id = ?";
+    const query = "UPDATE user SET status = 0 WHERE id = ?";
     await pool.query(query, [id]);
     return true;
   },

@@ -1,63 +1,128 @@
 const db = require("../config/db");
 
-// Obtener todas las farmacias (coordenadas y nombre)
+// Obtener farmacias para el mapa (solo id, nombre, latitud, longitud, y activas)
 const getFarmacias = async () => {
-  const [rows] = await db.execute("SELECT id, nombre, latitud, longitud FROM farmacia WHERE status = 1");
+  const [rows] = await db.execute(`
+    SELECT 
+      p.id, 
+      p.name, 
+      p.address, 
+      p.openingHours,
+      p.latitude,
+      p.longitude, 
+      z.name AS zone_name, 
+      d.name AS owner_name
+    FROM pharmacy p
+    LEFT JOIN zone z ON p.zone_id = z.id
+    LEFT JOIN owner d ON p.owner_id = d.id
+    WHERE p.status = 1
+  `);
   return rows;
 };
 
-// Obtener detalles de una farmacia con horarios en JSON
+// Obtener detalles de una farmacia con sustancias controladas activas
 const getFarmaciaById = async (id) => {
   const [rows] = await db.execute(
     `SELECT 
-        f.nombre,
-        f.imagen,
-        COALESCE(
-            JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'apertura', IFNULL(TIME_FORMAT(h.hora_entrada, '%H:%i'), ''),
-                    'cierre', IFNULL(TIME_FORMAT(h.hora_salida, '%H:%i'), '')
-                )
-            ),
-            CAST('[]' AS JSON)
-        ) AS horarios
-
-    FROM farmacia f
-    LEFT JOIN farmacia_horas fh ON f.id = fh.farmacia_id
-    LEFT JOIN horas h ON fh.hora_id = h.id
-    WHERE f.id = ?
-    GROUP BY f.id;`,
+        f.name, 
+        f.address, 
+        f.openingHours,
+        f.latitude,
+        f.longitude,
+        f.recordNumber,
+        f.businessName,
+        f.nit,
+        f.Code_id,
+        f.User_id,
+        f.Zone_id,
+        f.Owner_id,
+        f.status,
+        CASE 
+            WHEN f.sectorType = '0' THEN 'Privada' 
+            WHEN f.sectorType = '1' THEN 'Pública' 
+            ELSE 'Desconocido' 
+        END AS sectorType, 
+        f.image,
+        cs.name AS controlledSubstance
+    FROM pharmacy f
+    LEFT JOIN controlledsubstances cs ON f.ControlledSubstances_id = cs.id AND cs.status = 1
+    WHERE f.id = ?;`,
     [id]
   );
-  return rows[0];
+  return rows[0] || null;
 };
 
-// Crear una nueva farmacia
+
+
+// Crear nueva farmacia
 const createFarmacia = async (data) => {
-  const { nombre, numero_registro, direccion, latitud, longitud, fecha_registro, razon_social, nit, zona_id, dueno_id, codigo_id, usuario_id, imagen, horario_atencion, tipo } = data;
+  const {
+    name, recordNumber, address, latitude, longitude, businessName,
+    nit, Zone_id, Owner_id, Code_id, User_id, image, openingHours, sectorType
+  } = data;
+  
   const [result] = await db.execute(
-    "INSERT INTO farmacia (nombre, numero_registro, direccion, latitud, longitud, fecha_registro, razon_social, nit, zona_id, dueno_id, codigo_id, usuario_id, imagen, horario_atencion, tipo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [nombre, numero_registro, direccion, latitud, longitud, fecha_registro, razon_social, nit, zona_id, dueno_id, codigo_id, usuario_id, imagen, horario_atencion, tipo]
+    `INSERT INTO pharmacy (name, recordNumber, address, latitude, longitude, businessName,
+     nit, Zone_id, Owner_id, Code_id, User_id, image, openingHours, sectorType)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [name, recordNumber, address, latitude, longitude, businessName,
+    nit, Zone_id, Owner_id, Code_id, User_id, image, openingHours, sectorType]
   );
   return result.insertId;
 };
 
-// Editar una farmacia
+// Actualizar farmacia
 const updateFarmacia = async (id, data) => {
-  const { nombre, numero_registro, direccion, latitud, longitud, imagen, horario_atencion, tipo } = data;
+  const {
+    name, recordNumber, address, latitude, longitude, image, openingHours, sectorType
+  } = data;
+
   const [result] = await db.execute(
-    "UPDATE farmacia SET nombre=?, numero_registro=?, direccion=?, latitud=?, longitud=?, imagen=?, horario_atencion=?, tipo=? WHERE id=?",
-    [nombre, numero_registro, direccion, latitud, longitud, imagen, horario_atencion, tipo, id]
+    `UPDATE pharmacy SET name=?, recordNumber=?, address=?, latitude=?, longitude=?, 
+    image=?, openingHours=?, sectorType=? WHERE id=?`,
+    [name, recordNumber, address, latitude, longitude, image, openingHours, sectorType, id]
   );
   return result.affectedRows > 0;
 };
 
-// Eliminar una farmacia (cambio de status)
+// Eliminar farmacia (cambiar status a 0)
 const deleteFarmacia = async (id) => {
-  const [result] = await db.execute("UPDATE farmacia SET status = 0 WHERE id = ?", [id]);
+  const [result] = await db.execute(
+    "UPDATE pharmacy SET status = 0 WHERE id = ?", 
+    [id]
+  );
   return result.affectedRows > 0;
 };
-if (rows[0]?.imagen) {
-  rows[0].imagen = `data:image/jpeg;base64,${rows[0].imagen}`;
-}
-module.exports = { getFarmacias, getFarmaciaById, createFarmacia, updateFarmacia, deleteFarmacia };
+const getFarmaciasFiltradas = async (filtro) => {
+  let query = `
+    SELECT 
+      p.id, 
+      p.name, 
+      p.latitude, 
+      p.longitude, 
+      p.openingHours, 
+      cs.name AS controlledSubstance
+    FROM pharmacy p
+    LEFT JOIN controlledsubstances cs ON p.ControlledSubstances_id = cs.id
+    WHERE p.status = 1
+  `;
+
+  if (filtro === "turno_hoy") {
+    query += `
+      AND EXISTS (
+        SELECT 1 FROM pharmacy_shift ps
+        JOIN shift s ON ps.shift_id = s.id
+        WHERE ps.pharmacy_id = p.id
+        AND DATE(s.dayshift) = CURDATE()
+      )
+    `;
+  } else if (filtro === "con_sustancias") {
+    query += " AND cs.name IS NOT NULL AND cs.name != 'Ninguna'";
+  }
+
+  const [rows] = await db.execute(query);
+  return rows;
+};
+
+
+module.exports = { getFarmacias, getFarmaciaById, createFarmacia, updateFarmacia, deleteFarmacia,getFarmaciasFiltradas };

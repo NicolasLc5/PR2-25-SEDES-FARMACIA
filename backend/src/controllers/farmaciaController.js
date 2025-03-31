@@ -15,7 +15,7 @@ const getFarmaciaById = async (req, res) => {
   try {
     const { id } = req.params;
     const farmacia = await farmaciaModel.getFarmaciaById(id);
-    if (!farmacia) return res.status(404).json({ error: "Farmacia no encontrada" });
+    if (!farmacia) return res.status(404).json({ error: "Farmacia no encontrada aaaa" });
     res.json(farmacia);
   } catch (error) {
     res.status(500).json({ error: "Error al obtener la farmacia" });
@@ -55,5 +55,20 @@ const deleteFarmacia = async (req, res) => {
     res.status(500).json({ error: "Error al eliminar la farmacia" });
   }
 };
+const getFarmaciasFiltradas = async (req, res) => {
+  try {
+    const { filtro } = req.query;
+    
+    if (!filtro) {
+      return res.status(400).json({ error: "Parámetro 'filtro' es requerido" });
+    }
 
-module.exports = { getFarmacias, getFarmaciaById, createFarmacia, updateFarmacia, deleteFarmacia };
+    const farmacias = await farmaciaModel.getFarmaciasFiltradas(filtro);
+    res.json(farmacias);
+    
+  } catch (error) {
+    console.error("Error en getFarmaciasFiltradas:", error);
+    res.status(500).json({ error: "Error al obtener farmacias filtradas" });
+  }
+};
+module.exports = { getFarmacias, getFarmaciaById, createFarmacia, updateFarmacia, deleteFarmacia, getFarmaciasFiltradas };

@@ -5,8 +5,10 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Usuarios from "./pages/Usuarios";
+import Duenio from "./pages/Duenio";
 import Farmacias from "./pages/Farmacias";
 import PrivateRoute from "./components/PrivateRoute";
+import Turnos from "./pages/Turnos";
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
         <Route element={<PrivateRoute />}>
           <Route path="/usuarios" element={<Usuarios />} />
           <Route path="/farmacias" element={<Farmacias />} />
+          <Route path="/duenio" element={<Duenio />} />
+          <Route path="/turnos" element={<Turnos />} />
         </Route>
       </Routes>
     </Router>

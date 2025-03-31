@@ -1,5 +1,8 @@
 const express = require("express");
 const cors = require("cors");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const app = express();
 
@@ -15,6 +18,7 @@ const zonaRoutes = require("./routes/zonaRoutes");
 const sustanciasRoutes = require("./routes/sustanciasRoutes");
 const duenioRoutes = require("./routes/duenioRoutes");
 const usuarioRoutes = require("./routes/usuarioRoutes");
+const turnoRoutes = require("./routes/turnoRoutes");
 
 // Usar rutas
 app.use("/api/farmacias", farmaciaRoutes);
@@ -23,6 +27,7 @@ app.use("/api/zonas", zonaRoutes);
 app.use("/api/sustancias", sustanciasRoutes);
 app.use("/api/duenios", duenioRoutes);
 app.use("/api/usuarios", usuarioRoutes);
+app.use("/api/turnos", turnoRoutes);
 
 // Ruta de prueba
 app.get("/", (req, res) => {

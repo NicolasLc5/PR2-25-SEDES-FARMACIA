@@ -1,26 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import logo from "../assets/vite.svg"; // Cambia esto por tu logo real
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Verificar si hay token en localStorage
-    const token = localStorage.getItem("token");
-    setIsAuthenticated(!!token);
-  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token"); // Eliminar token al cerrar sesión
-    setIsAuthenticated(false);
-    navigate("/login"); // Redirigir a la página de inicio de sesión
+    logout(); // Usamos la función del contexto
+    navigate("/login");
   };
 
   return (
@@ -56,6 +50,16 @@ function Navbar() {
                 <li className="nav-item">
                   <Link className="nav-link" to="/farmacias" onClick={toggleMenu}>
                     Farmacias
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/Duenio" onClick={toggleMenu}>
+                    Propietarios
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/Turnos" onClick={toggleMenu}>
+                    Turnos
                   </Link>
                 </li>
               </>
