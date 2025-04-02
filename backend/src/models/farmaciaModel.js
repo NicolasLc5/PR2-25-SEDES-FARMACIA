@@ -36,12 +36,9 @@ const getFarmaciaById = async (id) => {
         f.User_id,
         f.Zone_id,
         f.Owner_id,
+        f.ControlledSubstances_id,
         f.status,
-        CASE 
-            WHEN f.sectorType = '0' THEN 'Privada' 
-            WHEN f.sectorType = '1' THEN 'Pública' 
-            ELSE 'Desconocido' 
-        END AS sectorType, 
+        f.sectorType,
         f.image,
         cs.name AS controlledSubstance
     FROM pharmacy f
@@ -49,40 +46,114 @@ const getFarmaciaById = async (id) => {
     WHERE f.id = ?;`,
     [id]
   );
+  if (rows[0]) {
+    const farmacia = rows[0];
+    // Convertir BLOB a Base64 si existe imagen
+    if (farmacia.image && farmacia.image instanceof Buffer) {
+      farmacia.image = `data:image/jpeg;base64,${farmacia.image.toString('base64')}`;
+    }
+    return farmacia;
+  }
   return rows[0] || null;
 };
-
-
 
 // Crear nueva farmacia
 const createFarmacia = async (data) => {
   const {
     name, recordNumber, address, latitude, longitude, businessName,
-    nit, Zone_id, Owner_id, Code_id, User_id, image, openingHours, sectorType
+    nit, Zone_id, Owner_id, Code_id, User_id, image, openingHours, sectorType,
+    ControlledSubstances_id // Valor por defecto si no se especifica
   } = data;
   
-  const [result] = await db.execute(
-    `INSERT INTO pharmacy (name, recordNumber, address, latitude, longitude, businessName,
-     nit, Zone_id, Owner_id, Code_id, User_id, image, openingHours, sectorType)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, recordNumber, address, latitude, longitude, businessName,
-    nit, Zone_id, Owner_id, Code_id, User_id, image, openingHours, sectorType]
-  );
-  return result.insertId;
+  try {
+    const [result] = await db.execute(
+      `INSERT INTO pharmacy (
+        name, recordNumber, address, latitude, longitude, businessName,
+        nit, Zone_id, Owner_id, Code_id, User_id, image, openingHours, sectorType,
+        ControlledSubstances_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name, 
+        recordNumber, 
+        address, 
+        latitude.toString(), // Convertir a string como espera la BD
+        longitude.toString(), // Convertir a string como espera la BD
+        businessName, 
+        nit,
+        Zone_id,
+        Owner_id,
+        Code_id,
+        User_id,
+        image,
+        openingHours, 
+        sectorType,
+        ControlledSubstances_id
+      ]
+    );
+    return result.insertId;
+  } catch (error) {
+    console.error('Error en createFarmacia model:', {
+      message: error.message,
+      sqlMessage: error.sqlMessage,
+      sql: error.sql,
+      stack: error.stack
+    });
+    throw error;
+  }
 };
 
 // Actualizar farmacia
+// Actualizar farmacia
 const updateFarmacia = async (id, data) => {
   const {
-    name, recordNumber, address, latitude, longitude, image, openingHours, sectorType
+    name, recordNumber, address, latitude, longitude, businessName,
+    nit, Zone_id, Owner_id, Code_id, User_id, image, openingHours, 
+    sectorType, ControlledSubstances_id
   } = data;
 
-  const [result] = await db.execute(
-    `UPDATE pharmacy SET name=?, recordNumber=?, address=?, latitude=?, longitude=?, 
-    image=?, openingHours=?, sectorType=? WHERE id=?`,
-    [name, recordNumber, address, latitude, longitude, image, openingHours, sectorType, id]
-  );
-  return result.affectedRows > 0;
+  try {
+    const [result] = await db.execute(
+      `UPDATE pharmacy SET 
+        name=?, 
+        recordNumber=?, 
+        address=?, 
+        latitude=?, 
+        longitude=?, 
+        businessName=?,
+        nit=?,
+        Zone_id=?,
+        Owner_id=?,
+        Code_id=?,
+        User_id=?,
+        image=?, 
+        openingHours=?, 
+        sectorType=?,
+        ControlledSubstances_id=?
+      WHERE id=?`,
+      [
+        name, 
+        recordNumber, 
+        address, 
+        latitude, 
+        longitude, 
+        businessName,
+        nit,
+        Zone_id,
+        Owner_id,
+        Code_id,
+        User_id,
+        image, 
+        openingHours, 
+        sectorType,
+        ControlledSubstances_id,
+        id
+      ]
+    );
+    return result.affectedRows > 0;
+  } catch (error) {
+    console.error('Error en updateFarmacia model:', error);
+    throw error;
+  }
 };
 
 // Eliminar farmacia (cambiar status a 0)

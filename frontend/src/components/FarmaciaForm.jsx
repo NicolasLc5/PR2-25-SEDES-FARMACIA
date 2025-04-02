@@ -51,6 +51,7 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
         Owner_id: '',
         Code_id: '',
         User_id: '',
+        ControlledSubstances_id: '',
         image: null,
         openingHours: '8',
         sectorType: '0'
@@ -64,6 +65,7 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
     const [usuarios, setUsuarios] = useState([]);
     const [previewImage, setPreviewImage] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
 
     // Cargar datos iniciales
     useEffect(() => {
@@ -98,10 +100,11 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
                         longitude: farmaciaData.longitude?.toString() || '',
                         businessName: farmaciaData.businessName || '',
                         nit: farmaciaData.nit || '',
-                        Zone_id: farmaciaData.Zone_id || '',
-                        Owner_id: farmaciaData.Owner_id || '',
-                        Code_id: farmaciaData.Code_id || '',
-                        User_id: farmaciaData.User_id || '',
+                        Zone_id: farmaciaData.Zone_id?.toString() || '',
+                        Owner_id: farmaciaData.Owner_id?.toString() || '',
+                        Code_id: farmaciaData.Code_id?.toString() || '',
+                        User_id: farmaciaData.User_id?.toString() || '',
+                        ControlledSubstances_id: farmaciaData.ControlledSubstances_id?.toString() || '',
                         image: farmaciaData.image || null,
                         openingHours: farmaciaData.openingHours?.toString() || '8',
                         sectorType: farmaciaData.sectorType?.toString() || '0'
@@ -115,11 +118,12 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
                     }
 
                     if (farmaciaData.image) {
-                        setPreviewImage(`data:image/jpeg;base64,${farmaciaData.image.toString('base64')}`);
+                        setPreviewImage(farmaciaData.image);
                     }
                 }
             } catch (error) {
                 console.error('Error cargando datos:', error);
+                setError('Error al cargar los datos iniciales');
             } finally {
                 setIsLoading(false);
             }
@@ -147,10 +151,16 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                setError('La imagen es demasiado grande (máximo 5MB)');
+                return;
+            }
+
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPreviewImage(reader.result);
                 setFormData(prev => ({ ...prev, image: reader.result }));
+                setError('');
             };
             reader.readAsDataURL(file);
         }
@@ -158,28 +168,54 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
 
-        if (!formData.latitude || !formData.longitude) {
-            alert('Por favor seleccione una ubicación en el mapa');
+        // Validar campos requeridos
+        const requiredFields = [
+            'name', 'recordNumber', 'address', 'latitude', 'longitude',
+            'businessName', 'nit', 'Zone_id', 'Owner_id', 'Code_id', 'User_id'
+        ];
+        
+        const missingFields = requiredFields.filter(field => !formData[field]);
+        if (missingFields.length > 0) {
+            setError(`Faltan campos requeridos: ${missingFields.join(', ')}`);
             return;
         }
 
         try {
+            // Preparar datos para enviar
+            const dataToSend = {
+                ...formData,
+                latitude: parseFloat(formData.latitude),
+                longitude: parseFloat(formData.longitude),
+                openingHours: parseInt(formData.openingHours),
+                sectorType: parseInt(formData.sectorType),
+                Zone_id: parseInt(formData.Zone_id),
+                Owner_id: parseInt(formData.Owner_id),
+                Code_id: parseInt(formData.Code_id),
+                User_id: parseInt(formData.User_id),
+                ControlledSubstances_id: formData.ControlledSubstances_id ? parseInt(formData.ControlledSubstances_id) : null
+            };
+
             if (farmaciaId) {
-                await axios.put(`http://localhost:5000/api/farmacias/${farmaciaId}`, formData);
-                // Actualizar la lista de farmacias
+                await axios.put(`http://localhost:5000/api/farmacias/${farmaciaId}`, dataToSend);
                 const updatedFarmacias = farmacias.map(f =>
-                    f.id === farmaciaId ? { ...f, ...formData } : f
+                    f.id === farmaciaId ? { ...f, ...dataToSend } : f
                 );
                 setFarmacias(updatedFarmacias);
             } else {
-                const response = await axios.post('http://localhost:5000/api/farmacias', formData);
+                const response = await axios.post('http://localhost:5000/api/farmacias', dataToSend);
                 setFarmacias([...farmacias, response.data]);
             }
+            
             onClose();
         } catch (error) {
             console.error('Error al guardar farmacia:', error);
-            alert('Error al guardar: ' + (error.response?.data?.message || error.message));
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.message || 
+                               error.message || 
+                               'Error desconocido al guardar';
+            setError(errorMessage);
         }
     };
 
@@ -209,52 +245,97 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
                         <button type="button" className="btn-close" onClick={onClose}></button>
                     </div>
                     <div className="modal-body">
+                        {error && (
+                            <div className="alert alert-danger" role="alert">
+                                {error}
+                            </div>
+                        )}
                         <form onSubmit={handleSubmit}>
                             <div className="row">
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">Nombre de Farmacia</label>
-                                        <input type="text" className="form-control" name="name"
-                                            value={formData.name} onChange={handleChange} required />
+                                        <label className="form-label">Nombre de Farmacia*</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control" 
+                                            name="name"
+                                            value={formData.name} 
+                                            onChange={handleChange} 
+                                            required 
+                                        />
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">Número de Registro</label>
-                                        <input type="text" className="form-control" name="recordNumber"
-                                            value={formData.recordNumber} onChange={handleChange} required />
+                                        <label className="form-label">Número de Registro*</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control" 
+                                            name="recordNumber"
+                                            value={formData.recordNumber} 
+                                            onChange={handleChange} 
+                                            required 
+                                        />
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">Dirección</label>
-                                        <input type="text" className="form-control" name="address"
-                                            value={formData.address} onChange={handleChange} required />
+                                        <label className="form-label">Dirección*</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control" 
+                                            name="address"
+                                            value={formData.address} 
+                                            onChange={handleChange} 
+                                            required 
+                                        />
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">Razón Social</label>
-                                        <input type="text" className="form-control" name="businessName"
-                                            value={formData.businessName} onChange={handleChange} required />
+                                        <label className="form-label">Razón Social*</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control" 
+                                            name="businessName"
+                                            value={formData.businessName} 
+                                            onChange={handleChange} 
+                                            required 
+                                        />
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">NIT</label>
-                                        <input type="text" className="form-control" name="nit"
-                                            value={formData.nit} onChange={handleChange} required />
+                                        <label className="form-label">NIT*</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control" 
+                                            name="nit"
+                                            value={formData.nit} 
+                                            onChange={handleChange} 
+                                            required 
+                                        />
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">Horario de Apertura</label>
-                                        <select className="form-select" name="openingHours"
-                                            value={formData.openingHours} onChange={handleChange} required>
+                                        <label className="form-label">Horario de Apertura*</label>
+                                        <select 
+                                            className="form-select" 
+                                            name="openingHours"
+                                            value={formData.openingHours} 
+                                            onChange={handleChange} 
+                                            required
+                                        >
                                             <option value="8">8:00 AM</option>
                                             <option value="12">12:00 PM</option>
                                         </select>
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">Tipo de Sector</label>
-                                        <select className="form-select" name="sectorType"
-                                            value={formData.sectorType} onChange={handleChange} required>
+                                        <label className="form-label">Tipo de Sector*</label>
+                                        <select 
+                                            className="form-select" 
+                                            name="sectorType"
+                                            value={formData.sectorType} 
+                                            onChange={handleChange} 
+                                            required
+                                        >
                                             <option value="0">Privado</option>
                                             <option value="1">Público</option>
                                         </select>
@@ -263,9 +344,14 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
 
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">Zona</label>
-                                        <select className="form-select" name="Zone_id"
-                                            value={formData.Zone_id} onChange={handleChange} required>
+                                        <label className="form-label">Zona*</label>
+                                        <select 
+                                            className="form-select" 
+                                            name="Zone_id"
+                                            value={formData.Zone_id} 
+                                            onChange={handleChange} 
+                                            required
+                                        >
                                             <option value="">Seleccione una zona</option>
                                             {zonas.map(zona => (
                                                 <option key={zona.id} value={zona.id}>{zona.name}</option>
@@ -274,9 +360,14 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">Dueño</label>
-                                        <select className="form-select" name="Owner_id"
-                                            value={formData.Owner_id} onChange={handleChange} required>
+                                        <label className="form-label">Dueño*</label>
+                                        <select 
+                                            className="form-select" 
+                                            name="Owner_id"
+                                            value={formData.Owner_id} 
+                                            onChange={handleChange} 
+                                            required
+                                        >
                                             <option value="">Seleccione un dueño</option>
                                             {duenios.map(duenio => (
                                                 <option key={duenio.id} value={duenio.id}>
@@ -287,9 +378,14 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">Código</label>
-                                        <select className="form-select" name="Code_id"
-                                            value={formData.Code_id} onChange={handleChange} required>
+                                        <label className="form-label">Código*</label>
+                                        <select 
+                                            className="form-select" 
+                                            name="Code_id"
+                                            value={formData.Code_id} 
+                                            onChange={handleChange} 
+                                            required
+                                        >
                                             <option value="">Seleccione un código</option>
                                             {codigos.map(codigo => (
                                                 <option key={codigo.id} value={codigo.id}>{codigo.name}</option>
@@ -299,8 +395,12 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
 
                                     <div className="mb-3">
                                         <label className="form-label">Sustancia Controlada</label>
-                                        <select className="form-select" name="Substance_id"
-                                            value={formData.Substance_id} onChange={handleChange} required>
+                                        <select 
+                                            className="form-select" 
+                                            name="ControlledSubstances_id"
+                                            value={formData.ControlledSubstances_id} 
+                                            onChange={handleChange}
+                                        >
                                             <option value="">Seleccione una sustancia</option>
                                             {sustancias.map(sustancia => (
                                                 <option key={sustancia.id} value={sustancia.id}>{sustancia.name}</option>
@@ -309,9 +409,14 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">Usuario Responsable</label>
-                                        <select className="form-select" name="User_id"
-                                            value={formData.User_id} onChange={handleChange} required>
+                                        <label className="form-label">Usuario Responsable*</label>
+                                        <select 
+                                            className="form-select" 
+                                            name="User_id"
+                                            value={formData.User_id} 
+                                            onChange={handleChange} 
+                                            required
+                                        >
                                             <option value="">Seleccione un usuario</option>
                                             {usuarios.map(usuario => (
                                                 <option key={usuario.id} value={usuario.id}>{usuario.username}</option>
@@ -320,12 +425,20 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label">Imagen</label>
-                                        <input type="file" className="form-control" accept="image/*"
-                                            onChange={handleFileChange} />
+                                        <label className="form-label">Imagen (max 5MB)</label>
+                                        <input 
+                                            type="file" 
+                                            className="form-control" 
+                                            accept="image/*"
+                                            onChange={handleFileChange} 
+                                        />
                                         {previewImage && (
                                             <div className="mt-2">
-                                                <img src={previewImage} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px' }} />
+                                                <img 
+                                                    src={previewImage} 
+                                                    alt="Preview" 
+                                                    style={{ maxWidth: '100%', maxHeight: '150px' }} 
+                                                />
                                             </div>
                                         )}
                                     </div>
@@ -334,7 +447,7 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
 
                             <div className="row mt-3">
                                 <div className="col-12">
-                                    <label className="form-label">Ubicación en Mapa (haga clic para seleccionar)</label>
+                                    <label className="form-label">Ubicación en Mapa* (haga clic para seleccionar)</label>
                                     <div style={{ height: '300px', width: '100%' }}>
                                         <MapContainer
                                             key={position ? `${position.lat}-${position.lng}` : 'default-map'}
@@ -357,8 +470,12 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
                             </div>
 
                             <div className="modal-footer mt-3">
-                                <button type="submit" className="btn btn-primary">Guardar</button>
-                                <button type="button" className="btn btn-secondary ms-2" onClick={onClose}>Cancelar</button>
+                                <button type="submit" className="btn btn-primary">
+                                    {farmaciaId ? 'Actualizar' : 'Guardar'}
+                                </button>
+                                <button type="button" className="btn btn-secondary ms-2" onClick={onClose}>
+                                    Cancelar
+                                </button>
                             </div>
                         </form>
                     </div>
