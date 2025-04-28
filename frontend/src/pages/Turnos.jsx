@@ -75,20 +75,34 @@ const Turnos = () => {
       setError('No hay turnos para enviar');
       return;
     }
-
+  
     try {
       setLoading(true);
       setError(null);
-      await axios.post('http://localhost:5000/api/turnos/enviar-correos', {
+      setSuccess(null);
+      
+      const response = await axios.post('http://localhost:5000/api/turnos/enviar-correos', {
         turnos: turnos
       });
-      setSuccess('Correos enviados exitosamente');
+      
+      const { exitosos, fallidos, message } = response.data;
+      
+      if (fallidos > 0) {
+        setSuccess(`${message}. Ver detalles en consola.`);
+        console.log('Detalles de envío:', response.data.detalles);
+      } else {
+        setSuccess(message);
+      }
     } catch (err) {
-      setError('Error al enviar correos');
+      const errorMsg = err.response?.data?.error || 
+                      err.response?.data?.message || 
+                      'Error al enviar correos';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
+  
 
   const handleChangeFiltro = (e) => {
     const { name, value } = e.target;

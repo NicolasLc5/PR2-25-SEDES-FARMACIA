@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const transporter = require("../config/email");
 
 const getTurnosEsteMes = async () => {
   const [rows] = await db.execute(`
@@ -58,16 +59,103 @@ const getTurnosFiltrados = async (filtro) => {
 };
 
 const enviarCorreosOwners = async (turnos) => {
-  // Aquí implementarías la lógica de envío de correos
-  // Esto es un ejemplo básico, deberías integrar con nodemailer o similar
-  const emails = turnos.map(t => t.owner_email);
-  console.log(`Enviando correos a: ${emails.join(', ')}`);
-  
-  return {
-    success: true,
-    message: `Correos enviados a ${emails.length} propietarios`,
-    emails
-  };
+  try {
+    // Agrupar turnos por dueño (para no enviar múltiples correos a la misma persona)
+    const turnosPorOwner = {};
+    
+    turnos.forEach(turno => {
+      if (!turnosPorOwner[turno.owner_email]) {
+        turnosPorOwner[turno.owner_email] = {
+          owner_name: turno.owner_name,
+          turnos: []
+        };
+      }
+      turnosPorOwner[turno.owner_email].turnos.push(turno);
+    });
+
+    // Preparar y enviar los correos
+    const resultados = await Promise.all(
+      Object.entries(turnosPorOwner).map(async ([email, data]) => {
+        try {
+          const { owner_name, turnos } = data;
+          
+          // Formatear las fechas de los turnos
+          const turnosFormateados = turnos.map(t => ({
+            ...t,
+            shift_date: new Date(t.shift_date).toLocaleDateString('es-ES', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })
+          }));
+
+          // Crear el contenido HTML del correo
+          const htmlContent = `
+            <h2>Estimado/a ${owner_name},</h2>
+            <p>A continuación se detallan los turnos asignados a sus farmacias:</p>
+            
+            <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
+              <thead>
+                <tr>
+                  <th>Farmacia</th>
+                  <th>Código</th>
+                  <th>Fecha del Turno</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${turnosFormateados.map(turno => `
+                  <tr>
+                    <td>${turno.pharmacy_name}</td>
+                    <td>${turno.pharmacy_code}</td>
+                    <td>${turno.shift_date}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            
+            <p>Por favor, asegúrese de cumplir con los turnos asignados.</p>
+            <p>Atentamente,<br>El equipo de gestión de turnos</p>
+          `;
+
+          // Configurar el correo
+          const mailOptions = {
+            from: '"Gestión de Turnos" <turnos@farmacias.com>',
+            to: email,
+            subject: 'Turnos asignados a sus farmacias',
+            html: htmlContent
+          };
+
+          // Enviar el correo
+          await transporter.sendMail(mailOptions);
+          return { email, success: true };
+        } catch (error) {
+          console.error(`Error al enviar correo a ${email}:`, error);
+          return { email, success: false, error: error.message };
+        }
+      })
+    );
+
+    // Calcular estadísticas de envío
+    const exitosos = resultados.filter(r => r.success).length;
+    const fallidos = resultados.filter(r => !r.success);
+    
+    return {
+      success: true,
+      message: `Correos enviados: ${exitosos} exitosos, ${fallidos.length} fallidos`,
+      total: resultados.length,
+      exitosos,
+      fallidos,
+      detalles: resultados
+    };
+  } catch (error) {
+    console.error("Error en enviarCorreosOwners:", error);
+    return {
+      success: false,
+      message: "Error general al enviar correos",
+      error: error.message
+    };
+  }
 };
 
 module.exports = {
