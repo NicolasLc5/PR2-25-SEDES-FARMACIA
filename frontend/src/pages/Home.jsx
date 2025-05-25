@@ -159,7 +159,7 @@ function Home() {
                       <strong>Sector:</strong> {selectedFarmacia.sectorType == '0' ? 'Privado' : 'Público'}
                     </li>
                     <li className="list-group-item">
-                      <strong>Horario:</strong> {selectedFarmacia.openingHours === '8' ? '8:00 AM' : '12:00 PM'}
+                      <strong>Horario de Apertura:</strong> {selectedFarmacia.openingHours === '8' ? '8:00 AM' : '12:00 PM'}
                     </li>
                     <li className="list-group-item">
                       <strong>Dirección:</strong> {selectedFarmacia.address || 'No disponible'}
