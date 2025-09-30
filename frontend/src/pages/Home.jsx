@@ -34,7 +34,7 @@ function Home() {
       setIsLoading(true);
       setError(null);
       try {
-        let url = "/api/farmacias";
+        let url = "https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/farmacias";
         if (filtro) url += `/filtradas?filtro=${filtro}`;
 
         const response = await axios.get(url);
@@ -54,7 +54,7 @@ function Home() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`http://localhost:5000/api/farmacias/${farmacia.id}`);
+      const response = await axios.get(`https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/farmacias/${farmacia.id}`);
       let farmaciaData = response.data;
       
       // Asegurar que la imagen tenga el formato correcto

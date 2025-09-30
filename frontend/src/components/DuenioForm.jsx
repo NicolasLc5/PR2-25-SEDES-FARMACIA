@@ -32,7 +32,7 @@ function DuenioForm({ duenio, onClose, setDuenios, duenios }) {
     e.preventDefault();
     if (duenio) {
       axios
-        .put(`http://localhost:5000/api/duenios/${duenio.id}`, formData)
+        .put(`https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/duenios/${duenio.id}`, formData)
         .then((response) => {
           setDuenios(duenios.map(d => d.id === duenio.id ? response.data : d));
           onClose();
@@ -40,7 +40,7 @@ function DuenioForm({ duenio, onClose, setDuenios, duenios }) {
         .catch((error) => console.error("Error al actualizar dueño:", error));
     } else {
       axios
-        .post("http://localhost:5000/api/duenios", formData)
+        .post("https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/duenios", formData)
         .then((response) => {
           setDuenios([...duenios, response.data]);
           onClose();

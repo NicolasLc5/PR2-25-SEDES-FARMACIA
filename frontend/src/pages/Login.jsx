@@ -14,7 +14,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:5000/api/usuarios/login", {
+      const response = await axios.post("https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/usuarios/login", {
         gmail,
         password,
       });

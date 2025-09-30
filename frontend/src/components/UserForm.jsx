@@ -28,7 +28,7 @@ function UserForm({ user, onClose, setUsers, users }) {
     e.preventDefault();
     if (user) {
       axios
-        .put(`http://localhost:5000/api/usuarios/${user.id}`, formData)
+        .put(`https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/usuarios/${user.id}`, formData)
         .then((response) => {
           setUsers(users.map((u) => (u.id === user.id ? response.data : u)));
           onClose();
@@ -36,7 +36,7 @@ function UserForm({ user, onClose, setUsers, users }) {
         .catch((error) => console.error("Error al actualizar usuario:", error));
     } else {
       axios
-        .post("http://localhost:5000/api/usuarios", formData)
+        .post("https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/usuarios", formData)
         .then((response) => {
           setUsers([...users, response.data]);
           onClose();

@@ -37,7 +37,7 @@ const Turnos = () => {
   useEffect(() => {
     const fetchCodigos = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/codigos');
+        const response = await axios.get('https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/codigos');
         setCodigos(response.data);
       } catch (err) {
         setError('Error al cargar códigos');
@@ -52,7 +52,7 @@ const Turnos = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get('http://localhost:5000/api/turnos/filtrados', {
+        const response = await axios.get('https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/turnos/filtrados', {
           params: {
             codigo: filtros.codigo,
             mes: filtros.mes
@@ -81,7 +81,7 @@ const Turnos = () => {
       setError(null);
       setSuccess(null);
       
-      const response = await axios.post('http://localhost:5000/api/turnos/enviar-correos', {
+      const response = await axios.post('https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/turnos/enviar-correos', {
         turnos: turnos
       });
       

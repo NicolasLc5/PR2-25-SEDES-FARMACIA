@@ -74,11 +74,11 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
             try {
                 // Cargar comboboxes
                 const [zonasRes, dueniosRes, codigosRes, sustanciasRes, usuariosRes] = await Promise.all([
-                    axios.get('http://localhost:5000/api/zonas'),
-                    axios.get('http://localhost:5000/api/duenios'),
-                    axios.get('http://localhost:5000/api/codigos'),
-                    axios.get('http://localhost:5000/api/sustancias'),
-                    axios.get('http://localhost:5000/api/usuarios')
+                    axios.get('https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/zonas'),
+                    axios.get('https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/duenios'),
+                    axios.get('https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/codigos'),
+                    axios.get('https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/sustancias'),
+                    axios.get('https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/usuarios')
                 ]);
 
                 setZonas(zonasRes.data);
@@ -89,7 +89,7 @@ function FarmaciaForm({ farmaciaId, onClose, setFarmacias, farmacias }) {
 
                 // Si estamos editando, cargar los datos de la farmacia
                 if (farmaciaId) {
-                    const farmaciaRes = await axios.get(`http://localhost:5000/api/farmacias/${farmaciaId}`);
+                    const farmaciaRes = await axios.get(`https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/farmacias/${farmaciaId}`);
                     const farmaciaData = farmaciaRes.data;
 
                     setFormData({
