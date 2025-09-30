@@ -13,7 +13,7 @@ function Duenios() {
 
   const fetchDuenios = () => {
     axios
-      .get("https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/duenios")
+      .get("https://pr2-25-sedes-farmacia-3.onrender.com/api/duenios")
       .then((response) => setDuenios(response.data))
       .catch((error) => console.error("Error al obtener dueños:", error));
   };
@@ -31,7 +31,7 @@ function Duenios() {
   const handleDeleteDuenio = (id) => {
     if (window.confirm("¿Está seguro de eliminar este dueño?")) {
       axios
-        .delete(`https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/duenios/${id}`)
+        .delete(`https://pr2-25-sedes-farmacia-3.onrender.com/api/duenios/${id}`)
         .then(() => {
           setDuenios(duenios.filter(duenio => duenio.id !== id));
         })

@@ -10,7 +10,7 @@ function Users() {
   // Obtener usuarios
   useEffect(() => {
     axios
-      .get("https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/usuarios")
+      .get("https://pr2-25-sedes-farmacia-3.onrender.com/api/usuarios")
       .then((response) => setUsers(response.data))
       .catch((error) => console.error("Error al obtener usuarios:", error));
   }, []);
@@ -30,7 +30,7 @@ function Users() {
   // Eliminar usuario
   const handleDeleteUser = (id) => {
     axios
-      .delete(`https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/usuarios/${id}`)
+      .delete(`https://pr2-25-sedes-farmacia-3.onrender.com/api/usuarios/${id}`)
       .then(() => setUsers(users.filter((user) => user.id !== id)))
       .catch((error) => console.error("Error al eliminar usuario:", error));
   };

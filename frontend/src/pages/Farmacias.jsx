@@ -15,7 +15,7 @@ function Farmacias() {
   const fetchFarmacias = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get('https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/farmacias');
+      const response = await axios.get('https://pr2-25-sedes-farmacia-3.onrender.com/api/farmacias');
       setFarmacias(response.data);
     } catch (error) {
       console.error('Error al obtener farmacias:', error);
@@ -38,7 +38,7 @@ function Farmacias() {
   const handleDeleteFarmacia = async (id) => {
     if (window.confirm('¿Está seguro de eliminar esta farmacia?')) {
       try {
-        await axios.delete(`https://pr2-25-sedes-farmacia-ucsz.onrender.com/api/farmacias/${id}`);
+        await axios.delete(`https://pr2-25-sedes-farmacia-3.onrender.com/api/farmacias/${id}`);
         setFarmacias(farmacias.filter(farmacia => farmacia.id !== id));
       } catch (error) {
         console.error('Error al eliminar farmacia:', error);
