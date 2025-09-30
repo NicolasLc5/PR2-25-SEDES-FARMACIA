@@ -34,7 +34,7 @@ function Home() {
       setIsLoading(true);
       setError(null);
       try {
-        let url = "http://localhost:5000/api/farmacias";
+        let url = "/api/farmacias";
         if (filtro) url += `/filtradas?filtro=${filtro}`;
 
         const response = await axios.get(url);
